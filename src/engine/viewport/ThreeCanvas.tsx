@@ -16,6 +16,7 @@ import { Canvas, ThreeEvent, useThree } from '@react-three/fiber';
 import { Grid, Html, Line, OrbitControls, TransformControls } from '@react-three/drei';
 import * as THREE from 'three';
 import { useAppStore } from '../../state/useAppStore';
+import { useShallow } from 'zustand/react/shallow';
 import { ParametricData, SceneObject, ToolType, Vector3D } from '../../types';
 import { createElementFromTool, createLineElementFromTool, isCreationTool, isLineBasedTool } from '../creation/ElementFactory';
 import { snapPoint } from '../creation/SnapEngine';
@@ -387,7 +388,7 @@ function GroundPlane() {
 /* ---------------------------------------------------------------------- */
 
 function SceneContent({ onDraggingChange }: { onDraggingChange: (dragging: boolean) => void }) {
-  const objects = useAppStore((s) => Object.values(s.objects));
+  const objects = useAppStore(useShallow((s) => Object.values(s.objects)));
   const selectedIds = useAppStore((s) => s.selectedIds);
   const activeTool = useAppStore((s) => s.activeTool);
   const updateObject = useAppStore((s) => s.updateObject);
