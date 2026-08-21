@@ -8,7 +8,7 @@ export default defineConfig(() => {
     // GitHub Pages serves the site from /<repo-name>/, so the base path
     // must match your repository name. Change 'evlab-3d-studio' below to
     // your actual GitHub repo name (keep the leading and trailing slash).
-    base: process.env.GITHUB_PAGES === 'true' ? '/evlab-3d-studio/' : '/',
+    base: process.env.GITHUB_PAGES === 'true' ? '/evl-3d-studio/' : '/',
     plugins: [react(), tailwindcss()],
     resolve: {
       alias: {
