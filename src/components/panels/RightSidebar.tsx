@@ -10,6 +10,7 @@ import React from 'react';
 import { Eye, EyeOff, Lock, Unlock, Layers } from 'lucide-react';
 import { useAppStore } from '../../state/useAppStore';
 import { ParametricData, Vector3D } from '../../types';
+import { BuildingLevelsPanel } from './BuildingLevelsPanel';
 
 interface RightSidebarProps {
   setCameraPreset: (preset: string) => void;
@@ -59,6 +60,7 @@ export function RightSidebar({ setCameraPreset: _setCameraPreset }: RightSidebar
   if (!selected) {
     return (
       <div className="w-72 shrink-0 bg-slate-900 border-l border-slate-800 flex flex-col text-slate-300">
+        <BuildingLevelsPanel />
         <div className="px-3 py-2 border-b border-slate-800 text-xs font-semibold uppercase tracking-wide text-slate-500 flex items-center gap-2">
           <Layers size={13} />
           Layers

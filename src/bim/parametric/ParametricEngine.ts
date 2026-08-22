@@ -241,6 +241,77 @@ export class ParametricEngine {
   }
 
   /**
+   * Adapter used by BIMCoreStore.syncFromSceneObjects/updateElementParameter
+   * and IFCImporter, where a full BIMElement with keyed instanceParameters
+   * doesn't exist yet (or has a lighter param shape). Normalises whatever
+   * category/type string is passed (SceneObject.category like
+   * 'Architectural', a BIM category like 'Wall', or parametric.type like
+   * 'wall') against loose dimension fields, using the same category-based
+   * geometry rules as computeQuantities().
+   */
+  public static calculateElementQuantities(
+    category: string,
+    dims: { type?: string; length?: number; width?: number; height?: number; thickness?: number; diameter?: number },
+    materialId: string
+  ): { quantities: BIMQuantity; trace: { calcId: string; formula: string; inputs: Record<string, number | string>; lastComputedAt: number } } {
+    const lengthMm = dims.length || 0;
+    const widthMm = dims.width || 0;
+    const heightMm = dims.height || 0;
+    const thicknessMm = dims.thickness || 0;
+    const diameterMm = dims.diameter || 0;
+
+    const key = `${category} ${dims.type || ''}`.toLowerCase();
+
+    let lengthM = 0;
+    let surfaceAreaM2 = 0;
+    let volumeM3 = 0;
+    let formula = 'genericLength';
+
+    if (/wall|slab|roof|architectural/.test(key)) {
+      lengthM = lengthMm / 1000;
+      surfaceAreaM2 = (lengthMm / 1000) * ((heightMm || 1000) / 1000);
+      volumeM3 = surfaceAreaM2 * ((thicknessMm || 100) / 1000);
+      formula = 'planarElement';
+    } else if (/column|beam|footing|structure/.test(key)) {
+      const runM = (/column/.test(key) ? heightMm : lengthMm) / 1000;
+      const crossSectionM2 = (widthMm / 1000) * ((thicknessMm || widthMm) / 1000);
+      lengthM = runM;
+      volumeM3 = crossSectionM2 * runM;
+      surfaceAreaM2 = 2 * (widthMm / 1000 + (thicknessMm || widthMm) / 1000) * runM;
+      formula = 'linearMember';
+    } else if (/door|window/.test(key)) {
+      surfaceAreaM2 = (widthMm / 1000) * (heightMm / 1000);
+      formula = 'opening';
+    } else if (/pipe|duct|cabletray|mechanical|water/.test(key)) {
+      lengthM = lengthMm / 1000;
+      const radiusM = (diameterMm || widthMm || 100) / 2000;
+      surfaceAreaM2 = 2 * Math.PI * radiusM * lengthM;
+      volumeM3 = Math.PI * radiusM * radiusM * lengthM;
+      formula = 'mepRun';
+    } else {
+      lengthM = lengthMm / 1000;
+    }
+
+    const costTotal = ParametricEngine.estimateCost({ lengthM, surfaceAreaM2, volumeM3 });
+
+    return {
+      quantities: {
+        lengthM: round3(lengthM),
+        surfaceAreaM2: round3(surfaceAreaM2),
+        volumeM3: round3(volumeM3),
+        count: 1,
+        costTotal: round3(costTotal)
+      },
+      trace: {
+        calcId: `calc_${Date.now()}_${Math.floor(Math.random() * 1e6)}`,
+        formula,
+        inputs: { lengthMm, widthMm, heightMm, thicknessMm, diameterMm, materialId },
+        lastComputedAt: Date.now()
+      }
+    };
+  }
+
+  /**
    * Lightweight per-element cost placeholder for immediate UI feedback
    * (properties panel, live BOQ preview). CostEngine (the 5D module) is
    * the authoritative source of truth once a real RateDatabase entry is

@@ -5,7 +5,7 @@
  */
 
 import React from 'react';
-import { Activity, Box, SquareStack } from 'lucide-react';
+import { Activity, Box, Layers, SquareStack } from 'lucide-react';
 import { useAppStore } from '../../state/useAppStore';
 
 export function RevitStatusBar() {
@@ -15,11 +15,19 @@ export function RevitStatusBar() {
   const viewportMode = useAppStore((s) => s.viewportMode);
   const setViewportMode = useAppStore((s) => s.setViewportMode);
   const objectCount = useAppStore((s) => Object.keys(s.objects).length);
+  const activeLevelName = useAppStore(
+    (s) => s.levels.find((l) => l.id === s.activeLevelId)?.name ?? '—'
+  );
 
   const fpsColor = fps >= 50 ? 'text-emerald-400' : fps >= 30 ? 'text-amber-400' : 'text-rose-400';
 
   return (
     <div className="h-7 shrink-0 bg-slate-900 border-t border-slate-800 flex items-center px-3 gap-4 text-[11px] text-slate-500">
+      <span className="flex items-center gap-1">
+        <Layers size={12} className="text-emerald-400" />
+        <span className="text-slate-300">{activeLevelName}</span>
+      </span>
+
       <span className="capitalize">
         Tool: <span className="text-slate-300">{activeTool}</span>
       </span>

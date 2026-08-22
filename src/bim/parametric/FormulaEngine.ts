@@ -246,6 +246,31 @@ export class FormulaEngine {
     return parser.parse();
   }
 
+  /**
+   * Wraps evaluateExpression() with the {value, calcTraceId} shape
+   * ScheduleEngine's calculated-column evaluation expects, so a single
+   * failing formula produces a 0 + trace id instead of throwing and
+   * breaking the whole schedule.
+   */
+  public static evaluate(expr: string, variables: Record<string, number>): { value: number; calcTraceId: string } {
+    const calcTraceId = `calc_${Date.now()}_${Math.floor(Math.random() * 1e6)}`;
+    try {
+      return { value: FormulaEngine.evaluateExpression(expr, variables), calcTraceId };
+    } catch {
+      return { value: 0, calcTraceId };
+    }
+  }
+
+  /**
+   * Standard formula library per BIM category. Empty for every category
+   * today (no formula authoring UI yet - Phase 3) - BIMCoreStore calls this
+   * when seeding a new element's `formulas` list, and an empty list is a
+   * valid, safe default (formulas is optional on BIMElement).
+   */
+  public static getStandardFormulasForCategory(_category: string): BIMFormula[] {
+    return [];
+  }
+
   /** Turns a parameter's display name into a formula-safe identifier. */
   public static slug(name: string): string {
     return name.replace(/[^a-zA-Z0-9]+/g, '_').replace(/^_+|_+$/g, '');

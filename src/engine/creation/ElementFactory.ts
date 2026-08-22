@@ -152,7 +152,8 @@ export function createElementFromTool(
   position: Vector3D,
   instanceIndex: number,
   layerId: string,
-  materialId: string
+  materialId: string,
+  levelName: string = 'Level 01 Ground Floor'
 ): SceneObject | null {
   const template = CREATION_TEMPLATES[tool];
   if (!template) return null;
@@ -168,7 +169,7 @@ export function createElementFromTool(
     family: template.family,
     typeName: template.typeName,
     material: template.material,
-    level: 'Level 1',
+    level: levelName,
     phase: 'New Construction',
     loadBearing: template.loadBearing,
     system: template.system,
@@ -207,7 +208,8 @@ export function createLineElementFromTool(
   end: Vector3D,
   instanceIndex: number,
   layerId: string,
-  materialId: string
+  materialId: string,
+  levelName: string = 'Level 01 Ground Floor'
 ): SceneObject | null {
   const dx = end.x - start.x;
   const dz = end.z - start.z;
@@ -216,7 +218,7 @@ export function createLineElementFromTool(
 
   const midpoint: Vector3D = { x: (start.x + end.x) / 2, y: 0, z: (start.z + end.z) / 2 };
 
-  const base = createElementFromTool(tool, midpoint, instanceIndex, layerId, materialId);
+  const base = createElementFromTool(tool, midpoint, instanceIndex, layerId, materialId, levelName);
   if (!base) return null;
 
   base.parametric = { ...base.parametric, length };

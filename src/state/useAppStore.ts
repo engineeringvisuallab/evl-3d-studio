@@ -18,6 +18,8 @@ import {
   CommandHistoryItem,
 } from '../types';
 import { buildDemoScene } from './seedDemoScene';
+import { BIMLevel } from '../bim/core/BIMTypes';
+import { DEFAULT_BIM_LEVELS } from '../bim/core/LevelSystem';
 
 function seedObjects(): Record<string, SceneObject> {
   const objects: Record<string, SceneObject> = {};
@@ -74,6 +76,17 @@ interface AppState {
   layers: LayerTag[];
   materials: MaterialDef[];
 
+  // Building levels (floors/stories) - Revit-style. New elements are
+  // tagged with the active level's name; the level list drives the
+  // Building Levels panel and (later) level-based view filtering.
+  levels: BIMLevel[];
+  activeLevelId: string;
+  setActiveLevelId: (id: string) => void;
+  addLevel: (name: string, elevationMm: number) => void;
+  renameLevel: (id: string, name: string) => void;
+  updateLevelElevation: (id: string, elevationMm: number) => void;
+  removeLevel: (id: string) => void;
+
   // Instance naming - monotonic per parametric.type, survives deletes so
   // names never collide (see seedInstanceCounters)
   typeInstanceCounters: Record<string, number>;
@@ -121,9 +134,46 @@ export const useAppStore = create<AppState>((set, get) => ({
   fps: 60,
   layers: [DEFAULT_LAYER],
   materials: [DEFAULT_MATERIAL],
+  levels: DEFAULT_BIM_LEVELS.map((l) => ({ ...l })),
+  activeLevelId: 'lvl_01_ground',
   typeInstanceCounters: seedInstanceCounters(initialObjects),
   history: [],
   historyIndex: -1,
+
+  setActiveLevelId: (id) => set({ activeLevelId: id }),
+
+  addLevel: (name, elevationMm) =>
+    set((state) => {
+      const id = `lvl_${Date.now()}_${Math.floor(Math.random() * 1000)}`;
+      const newLevel: BIMLevel = {
+        id,
+        name,
+        elevationMm,
+        elevationM: elevationMm / 1000,
+        isStory: true,
+      };
+      return { levels: [...state.levels, newLevel] };
+    }),
+
+  renameLevel: (id, name) =>
+    set((state) => ({
+      levels: state.levels.map((l) => (l.id === id ? { ...l, name } : l)),
+    })),
+
+  updateLevelElevation: (id, elevationMm) =>
+    set((state) => ({
+      levels: state.levels.map((l) =>
+        l.id === id ? { ...l, elevationMm, elevationM: elevationMm / 1000 } : l
+      ),
+    })),
+
+  removeLevel: (id) =>
+    set((state) => {
+      if (state.levels.length <= 1) return {}; // always keep at least one level
+      const remaining = state.levels.filter((l) => l.id !== id);
+      const activeLevelId = state.activeLevelId === id ? remaining[0].id : state.activeLevelId;
+      return { levels: remaining, activeLevelId };
+    }),
 
   selectObject: (id, additive = false) =>
     set((state) => {

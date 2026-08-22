@@ -13,6 +13,7 @@ import { RevitStatusBar } from './components/statusbar/RevitStatusBar';
 import { ExportDialog } from './components/dialogs/ExportDialog';
 import { ShortcutHelpDialog } from './components/dialogs/ShortcutHelpDialog';
 import { useAppStore } from './state/useAppStore';
+import { useBIMSync } from './state/useBIMSync';
 
 export default function App() {
   const [cameraPreset, setCameraPreset] = useState<string | null>(null);
@@ -27,6 +28,8 @@ export default function App() {
     setFps,
     toggleShowLabels
   } = useAppStore();
+
+  useBIMSync();
 
   // Keyboard Shortcuts Listener
   useEffect(() => {

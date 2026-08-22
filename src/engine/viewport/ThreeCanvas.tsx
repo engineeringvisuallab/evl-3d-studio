@@ -273,6 +273,8 @@ function GroundPlane() {
   const objects = useAppStore((s) => s.objects);
   const layers = useAppStore((s) => s.layers);
   const materials = useAppStore((s) => s.materials);
+  const levels = useAppStore((s) => s.levels);
+  const activeLevelId = useAppStore((s) => s.activeLevelId);
   const addObject = useAppStore((s) => s.addObject);
   const clearSelection = useAppStore((s) => s.clearSelection);
   const nextInstanceNumber = useAppStore((s) => s.nextInstanceNumber);
@@ -305,6 +307,7 @@ function GroundPlane() {
       e.stopPropagation();
       const layerId = layers[0]?.id ?? 'layer_default';
       const materialId = materials[0]?.id ?? 'mat_default';
+      const activeLevelName = levels.find((l) => l.id === activeLevelId)?.name ?? 'Level 01 Ground Floor';
       const raw: Vector3D = { x: e.point.x / MM, y: 0, z: e.point.z / MM };
       const snapped = snapPoint(raw, objectList).point;
 
@@ -319,7 +322,8 @@ function GroundPlane() {
           snapped,
           nextInstanceNumber(activeTool),
           layerId,
-          materialId
+          materialId,
+          activeLevelName
         );
         if (newObject) addObject(newObject);
         setSketchStart(snapped); // chain: next run starts where this one ended
@@ -327,14 +331,21 @@ function GroundPlane() {
       }
 
       if (isCreationTool(activeTool)) {
-        const newObject = createElementFromTool(activeTool, snapped, nextInstanceNumber(activeTool), layerId, materialId);
+        const newObject = createElementFromTool(
+          activeTool,
+          snapped,
+          nextInstanceNumber(activeTool),
+          layerId,
+          materialId,
+          activeLevelName
+        );
         if (newObject) addObject(newObject);
         return;
       }
 
       clearSelection();
     },
-    [activeTool, sketchStart, objectList, layers, materials, addObject, clearSelection, nextInstanceNumber]
+    [activeTool, sketchStart, objectList, layers, materials, levels, activeLevelId, addObject, clearSelection, nextInstanceNumber]
   );
 
   const previewLength = sketchStart && hoverPoint ? Math.hypot(hoverPoint.x - sketchStart.x, hoverPoint.z - sketchStart.z) : 0;
