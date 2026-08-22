@@ -44,8 +44,9 @@ export const LevelManagerDialog: React.FC = () => {
 
   // Count elements per level
   const getElementsCountForLevel = (levelId: string) => {
-    const baseCount = objects.filter((o) => o.bim?.baseLevelId === levelId).length;
-    const topCount = objects.filter((o) => o.bim?.topLevelId === levelId).length;
+    const objectList = Object.values(objects);
+    const baseCount = objectList.filter((o) => o.bim?.baseLevelId === levelId).length;
+    const topCount = objectList.filter((o) => o.bim?.topLevelId === levelId).length;
     return { baseCount, topCount, total: baseCount + topCount };
   };
 
@@ -67,14 +68,8 @@ export const LevelManagerDialog: React.FC = () => {
 
   const handleAddCustomLevel = () => {
     const elevMm = Math.round(newElevationM * 1000);
-    const newLvl: BIMLevel = {
-      id: `lvl_${Date.now().toString().slice(-6)}`,
-      name: newLevelName.trim() || `Level 0${levels.length} (+${newElevationM}m)`,
-      elevationM: newElevationM,
-      elevationMm: elevMm,
-      isStory: true
-    };
-    addLevel(newLvl);
+    const levelName = newLevelName.trim() || `Level 0${levels.length} (+${newElevationM}m)`;
+    addLevel(levelName, elevMm);
     setNewLevelName('');
     setNewElevationM(Number((newElevationM + 3.5).toFixed(2)));
   };
@@ -82,14 +77,7 @@ export const LevelManagerDialog: React.FC = () => {
   const handleAddAbove = (baseLvl: BIMLevel) => {
     const nextElevMm = baseLvl.elevationMm + 3500;
     const nextElevM = Number((nextElevMm / 1000).toFixed(3));
-    const newLvl: BIMLevel = {
-      id: `lvl_${Date.now().toString().slice(-6)}`,
-      name: `Level 0${levels.length} (+${nextElevM}m)`,
-      elevationM: nextElevM,
-      elevationMm: nextElevMm,
-      isStory: true
-    };
-    addLevel(newLvl);
+    addLevel(`Level 0${levels.length} (+${nextElevM}m)`, nextElevMm);
   };
 
   const handleApplyPreset = (presetName: 'residential' | 'commercial' | 'industrial' | 'highrise') => {

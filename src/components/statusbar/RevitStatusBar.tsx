@@ -11,7 +11,7 @@ import { useBIMStore } from '../../bim/BIMCoreStore';
 
 export function RevitStatusBar() {
   const activeTool = useAppStore((s) => s.activeTool);
-  const selectedIds = useAppStore((s) => s.selectedIds);
+  const selectedObjectIds = useAppStore((s) => s.selectedObjectIds);
   const fps = useAppStore((s) => s.fps);
   const viewportMode = useAppStore((s) => s.viewportMode);
   const setViewportMode = useAppStore((s) => s.setViewportMode);
@@ -42,7 +42,7 @@ export function RevitStatusBar() {
       </span>
 
       <span>
-        Selected: <span className="text-slate-300">{selectedIds.length}</span>
+        Selected: <span className="text-slate-300">{selectedObjectIds.length}</span>
       </span>
 
       <div className="flex-1" />

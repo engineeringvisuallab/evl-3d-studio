@@ -20,6 +20,7 @@ export interface CostBreakdown {
   overheadUSD: number;
   markupUSD: number;
   totalCostUSD: number; // directCostTotalUSD + overheadUSD + markupUSD
+  formulaTraceId?: string; // audit id linking this breakdown back to the rate/formula run that produced it
 }
 
 export interface BIMCostItem {

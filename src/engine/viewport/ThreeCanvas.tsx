@@ -159,7 +159,7 @@ interface ObjectMeshProps {
 
 function ObjectMesh({ object, registerRef }: ObjectMeshProps) {
   const selectObject = useAppStore((s) => s.selectObject);
-  const isSelected = useAppStore((s) => s.selectedIds.includes(object.id));
+  const isSelected = useAppStore((s) => s.selectedObjectIds.includes(object.id));
   const showLabels = useAppStore((s) => s.showLabels);
 
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -400,13 +400,13 @@ function GroundPlane() {
 
 function SceneContent({ onDraggingChange }: { onDraggingChange: (dragging: boolean) => void }) {
   const objects = useAppStore(useShallow((s) => Object.values(s.objects)));
-  const selectedIds = useAppStore((s) => s.selectedIds);
+  const selectedObjectIds = useAppStore((s) => s.selectedObjectIds);
   const activeTool = useAppStore((s) => s.activeTool);
   const updateObject = useAppStore((s) => s.updateObject);
 
   const groupRefs = useRef<Map<string, THREE.Group>>(new Map());
 
-  const transformTargetId = selectedIds.length === 1 ? selectedIds[0] : null;
+  const transformTargetId = selectedObjectIds.length === 1 ? selectedObjectIds[0] : null;
   const transformTarget = transformTargetId ? groupRefs.current.get(transformTargetId) ?? null : null;
 
   const transformMode: 'translate' | 'rotate' | 'scale' | null =

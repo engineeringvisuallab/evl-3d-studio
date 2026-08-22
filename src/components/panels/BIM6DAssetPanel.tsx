@@ -58,7 +58,7 @@ export const BIM6DAssetPanel: React.FC = () => {
 
   const handleSelectAssetInViewport = (elementId: string) => {
     // Find matching SceneObject in app store
-    const obj = objects.find((o) => o.id === elementId || o.name.toLowerCase().includes('ahu') || o.name.toLowerCase().includes('pump'));
+    const obj = Object.values(objects).find((o) => o.id === elementId || o.name.toLowerCase().includes('ahu') || o.name.toLowerCase().includes('pump'));
     if (obj) {
       setSelectedObjectIds([obj.id]);
     }

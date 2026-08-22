@@ -20,7 +20,7 @@ export const EntityPropertiesPanel: React.FC = () => {
     duplicateSelectedObjects
   } = useAppStore();
 
-  const selectedObject = objects.find((o) => selectedObjectIds.includes(o.id));
+  const selectedObject = Object.values(objects).find((o) => selectedObjectIds.includes(o.id));
 
   if (!selectedObject) {
     return (

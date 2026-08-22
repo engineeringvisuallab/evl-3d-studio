@@ -47,12 +47,12 @@ export const BIMInspectorPanel: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'params' | 'constraints' | 'dependencies' | 'hosts' | 'mep' | 'quantities' | 'validation'>('params');
 
   useEffect(() => {
-    syncFromSceneObjects(objects);
+    syncFromSceneObjects(Object.values(objects));
   }, [objects]);
 
   const selectedObjectId = selectedObjectIds[0];
   const selectedBimElement = selectedObjectId ? elements.get(selectedObjectId) : undefined;
-  const selectedSceneObject = objects.find((o) => o.id === selectedObjectId);
+  const selectedSceneObject = Object.values(objects).find((o) => o.id === selectedObjectId);
 
   if (!selectedObjectId || !selectedBimElement) {
     return (

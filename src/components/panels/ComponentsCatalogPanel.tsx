@@ -18,10 +18,27 @@ import {
   Footprints,
   Wind
 } from 'lucide-react';
-import { ObjectCategory } from '../../types';
+import { ObjectCategory, SceneObject } from '../../types';
 
 export const ComponentsCatalogPanel: React.FC = () => {
-  const { addObject } = useAppStore();
+  const { addObject, activeLayerId, layers } = useAppStore();
+
+  /** Fills in the transform/visibility/layer scaffolding every SceneObject needs,
+   * so each catalog preset only has to specify the BIM-meaningful fields. */
+  const place = (
+    partial: Omit<SceneObject, 'id' | 'rotation' | 'scale' | 'visible' | 'locked' | 'layerId'>
+  ) => {
+    const id = `${partial.parametric.type}_${Date.now()}_${Math.floor(Math.random() * 10000)}`;
+    addObject({
+      id,
+      rotation: { x: 0, y: 0, z: 0 },
+      scale: { x: 1, y: 1, z: 1 },
+      visible: true,
+      locked: false,
+      layerId: activeLayerId ?? layers[0]?.id ?? 'layer_default',
+      ...partial,
+    });
+  };
 
   const presets = [
     // --- Architecture ---
@@ -31,7 +48,7 @@ export const ComponentsCatalogPanel: React.FC = () => {
       category: 'Architectural' as ObjectCategory,
       icon: <Building className="w-4 h-4 text-emerald-400" />,
       action: () =>
-        addObject({
+        place({
           name: 'Exterior Brick Wall (8m)',
           category: 'Architectural',
           discipline: 'Architecture',
@@ -60,7 +77,7 @@ export const ComponentsCatalogPanel: React.FC = () => {
       category: 'Architectural' as ObjectCategory,
       icon: <DoorOpen className="w-4 h-4 text-amber-400" />,
       action: () =>
-        addObject({
+        place({
           name: 'Single Flush Door (900x2100)',
           category: 'Architectural',
           discipline: 'Architecture',
@@ -88,7 +105,7 @@ export const ComponentsCatalogPanel: React.FC = () => {
       category: 'Architectural' as ObjectCategory,
       icon: <AppWindow className="w-4 h-4 text-sky-400" />,
       action: () =>
-        addObject({
+        place({
           name: 'Double Glazed Window (1200x1500)',
           category: 'Architectural',
           discipline: 'Architecture',
@@ -116,7 +133,7 @@ export const ComponentsCatalogPanel: React.FC = () => {
       category: 'Architectural' as ObjectCategory,
       icon: <Footprints className="w-4 h-4 text-teal-400" />,
       action: () =>
-        addObject({
+        place({
           name: 'Cast-in-Place Concrete Stairs',
           category: 'Architectural',
           discipline: 'Architecture',
@@ -144,7 +161,7 @@ export const ComponentsCatalogPanel: React.FC = () => {
       category: 'Architectural' as ObjectCategory,
       icon: <Triangle className="w-4 h-4 text-purple-400" />,
       action: () =>
-        addObject({
+        place({
           name: 'Sloped Hip Roof (10x8m)',
           category: 'Architectural',
           discipline: 'Architecture',
@@ -174,7 +191,7 @@ export const ComponentsCatalogPanel: React.FC = () => {
       category: 'Structure' as ObjectCategory,
       icon: <Square className="w-4 h-4 text-slate-400" />,
       action: () =>
-        addObject({
+        place({
           name: 'Isolated Spread Footing F1',
           category: 'Structure',
           discipline: 'Structure',
@@ -202,7 +219,7 @@ export const ComponentsCatalogPanel: React.FC = () => {
       category: 'Structure' as ObjectCategory,
       icon: <Columns className="w-4 h-4 text-cyan-400" />,
       action: () =>
-        addObject({
+        place({
           name: 'RC Column 500x500',
           category: 'Structure',
           discipline: 'Structure',
@@ -231,7 +248,7 @@ export const ComponentsCatalogPanel: React.FC = () => {
       category: 'Structure' as ObjectCategory,
       icon: <Square className="w-4 h-4 text-red-400" />,
       action: () =>
-        addObject({
+        place({
           name: 'Steel Beam IPE 300',
           category: 'Structure',
           discipline: 'Structure',
@@ -259,7 +276,7 @@ export const ComponentsCatalogPanel: React.FC = () => {
       category: 'Structure' as ObjectCategory,
       icon: <Layers className="w-4 h-4 text-indigo-400" />,
       action: () =>
-        addObject({
+        place({
           name: 'Suspended Floor Slab (8x6m)',
           category: 'Structure',
           discipline: 'Structure',
@@ -289,7 +306,7 @@ export const ComponentsCatalogPanel: React.FC = () => {
       category: 'Mechanical' as ObjectCategory,
       icon: <Wind className="w-4 h-4 text-blue-400" />,
       action: () =>
-        addObject({
+        place({
           name: 'HVAC Supply Air Duct',
           category: 'Mechanical',
           discipline: 'MEP',
@@ -317,7 +334,7 @@ export const ComponentsCatalogPanel: React.FC = () => {
       category: 'Water' as ObjectCategory,
       icon: <Pipette className="w-4 h-4 text-sky-400" />,
       action: () =>
-        addObject({
+        place({
           name: 'HDPE Pipe DN200',
           category: 'Water',
           discipline: 'MEP',

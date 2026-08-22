@@ -8,6 +8,7 @@ import { RevitRibbonBar } from './components/topbar/RevitRibbonBar';
 import { RevitOptionsBar } from './components/topbar/RevitOptionsBar';
 import { LeftToolbar } from './components/toolbar/LeftToolbar';
 import { ThreeCanvas } from './engine/viewport/ThreeCanvas';
+import { Plan2DCanvas } from './engine/viewport/Plan2DCanvas';
 import { RightSidebar } from './components/panels/RightSidebar';
 import { RevitStatusBar } from './components/statusbar/RevitStatusBar';
 import { ExportDialog } from './components/dialogs/ExportDialog';
@@ -26,7 +27,8 @@ export default function App() {
     undo,
     redo,
     setFps,
-    toggleShowLabels
+    toggleShowLabels,
+    viewportMode
   } = useAppStore();
 
   useBIMSync();
@@ -120,7 +122,7 @@ export default function App() {
 
         {/* Center 3D / 2D Viewport */}
         <div className="flex-1 h-full relative">
-          <ThreeCanvas cameraPreset={cameraPreset} />
+          {viewportMode === '2D' ? <Plan2DCanvas /> : <ThreeCanvas cameraPreset={cameraPreset} />}
         </div>
 
         {/* Right Inspector & BIM Panels */}

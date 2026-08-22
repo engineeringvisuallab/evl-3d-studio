@@ -28,7 +28,7 @@ export const OutlinerPanel: React.FC = () => {
       </div>
 
       <div className="space-y-1">
-        {objects.map((obj) => {
+        {Object.values(objects).map((obj) => {
           const isSelected = selectedObjectIds.includes(obj.id);
 
           return (

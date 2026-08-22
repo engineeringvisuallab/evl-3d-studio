@@ -16,6 +16,10 @@ import {
   LayerTag,
   MaterialDef,
   CommandHistoryItem,
+  ParametricData,
+  BimMetadata,
+  SavedScene,
+  Vector3D,
 } from '../types';
 import { buildDemoScene } from './seedDemoScene';
 import { BIMLevel } from '../bim/core/BIMTypes';
@@ -62,7 +66,7 @@ const DEFAULT_MATERIAL: MaterialDef = {
 interface AppState {
   // Scene data
   objects: Record<string, SceneObject>;
-  selectedIds: string[];
+  selectedObjectIds: string[];
 
   // Tool / viewport UI state
   activeTool: ToolType;
@@ -85,7 +89,10 @@ interface AppState {
   addLevel: (name: string, elevationMm: number) => void;
   renameLevel: (id: string, name: string) => void;
   updateLevelElevation: (id: string, elevationMm: number) => void;
+  updateLevel: (id: string, patch: Partial<BIMLevel>) => void;
   removeLevel: (id: string) => void;
+  isLevelManagerOpen: boolean;
+  setIsLevelManagerOpen: (open: boolean) => void;
 
   // Instance naming - monotonic per parametric.type, survives deletes so
   // names never collide (see seedInstanceCounters)
@@ -98,13 +105,34 @@ interface AppState {
 
   // Selection
   selectObject: (id: string, additive?: boolean) => void;
+  setSelectedObjectIds: (ids: string[]) => void;
   clearSelection: () => void;
 
   // Object CRUD
   addObject: (object: SceneObject) => void;
   updateObject: (id: string, patch: Partial<SceneObject>, actionName?: string) => void;
+  updateObjectParametric: (id: string, patch: Partial<ParametricData>) => void;
+  updateObjectBim: (id: string, patch: Partial<BimMetadata>) => void;
   removeObject: (id: string) => void;
   removeSelectedObjects: () => void;
+  duplicateSelectedObjects: () => void;
+  groupSelectedObjects: () => void;
+
+  // Layers
+  activeLayerId: string;
+  setActiveLayerId: (id: string) => void;
+  addLayer: (name: string, color: string) => void;
+  toggleLayerVisibility: (id: string) => void;
+  toggleLayerLock: (id: string) => void;
+
+  // Materials
+  activeMaterialId: string;
+  setActiveMaterialId: (id: string) => void;
+  addMaterial: (material: MaterialDef) => void;
+
+  // Saved camera scenes / viewpoints
+  savedScenes: SavedScene[];
+  saveCurrentScene: (name: string, cameraPosition: Vector3D, targetPosition: Vector3D) => void;
 
   // Tools / viewport
   setActiveTool: (tool: ToolType) => void;
@@ -125,7 +153,7 @@ const initialObjects = seedObjects();
 
 export const useAppStore = create<AppState>((set, get) => ({
   objects: initialObjects,
-  selectedIds: [],
+  selectedObjectIds: [],
   activeTool: 'select',
   editMode: 'object',
   displayMode: 'shaded',
@@ -136,6 +164,10 @@ export const useAppStore = create<AppState>((set, get) => ({
   materials: [DEFAULT_MATERIAL],
   levels: DEFAULT_BIM_LEVELS.map((l) => ({ ...l })),
   activeLevelId: 'lvl_01_ground',
+  isLevelManagerOpen: false,
+  activeLayerId: DEFAULT_LAYER.id,
+  activeMaterialId: DEFAULT_MATERIAL.id,
+  savedScenes: [],
   typeInstanceCounters: seedInstanceCounters(initialObjects),
   history: [],
   historyIndex: -1,
@@ -167,6 +199,21 @@ export const useAppStore = create<AppState>((set, get) => ({
       ),
     })),
 
+  updateLevel: (id, patch) =>
+    set((state) => ({
+      levels: state.levels.map((l) => {
+        if (l.id !== id) return l;
+        const merged = { ...l, ...patch };
+        // Keep the mm/m mirrors in sync no matter which one the caller patched.
+        if (patch.elevationMm !== undefined && patch.elevationM === undefined) {
+          merged.elevationM = patch.elevationMm / 1000;
+        } else if (patch.elevationM !== undefined && patch.elevationMm === undefined) {
+          merged.elevationMm = Math.round(patch.elevationM * 1000);
+        }
+        return merged;
+      }),
+    })),
+
   removeLevel: (id) =>
     set((state) => {
       if (state.levels.length <= 1) return {}; // always keep at least one level
@@ -175,16 +222,22 @@ export const useAppStore = create<AppState>((set, get) => ({
       return { levels: remaining, activeLevelId };
     }),
 
+  setIsLevelManagerOpen: (open) => set({ isLevelManagerOpen: open }),
+
   selectObject: (id, additive = false) =>
     set((state) => {
-      if (!additive) return { selectedIds: [id] };
-      const already = state.selectedIds.includes(id);
+      if (!additive) return { selectedObjectIds: [id] };
+      const already = state.selectedObjectIds.includes(id);
       return {
-        selectedIds: already ? state.selectedIds.filter((s) => s !== id) : [...state.selectedIds, id],
+        selectedObjectIds: already
+          ? state.selectedObjectIds.filter((s) => s !== id)
+          : [...state.selectedObjectIds, id],
       };
     }),
 
-  clearSelection: () => set({ selectedIds: [] }),
+  setSelectedObjectIds: (ids) => set({ selectedObjectIds: ids }),
+
+  clearSelection: () => set({ selectedObjectIds: [] }),
 
   nextInstanceNumber: (type) => {
     const current = get().typeInstanceCounters[type] ?? 0;
@@ -194,6 +247,18 @@ export const useAppStore = create<AppState>((set, get) => ({
   },
 
   addObject: (object) => set((state) => ({ objects: { ...state.objects, [object.id]: object } })),
+
+  updateObjectParametric: (id, patch) => {
+    const target = get().objects[id];
+    if (!target) return;
+    get().updateObject(id, { parametric: { ...target.parametric, ...patch } }, 'Edit Geometry');
+  },
+
+  updateObjectBim: (id, patch) => {
+    const target = get().objects[id];
+    if (!target) return;
+    get().updateObject(id, { bim: { ...target.bim, ...patch } }, 'Edit BIM Data');
+  },
 
   updateObject: (id, patch, actionName = 'Modify Object') => {
     const before = get().objects[id];
@@ -216,7 +281,7 @@ export const useAppStore = create<AppState>((set, get) => ({
     set((s) => {
       const next = { ...s.objects };
       delete next[id];
-      return { objects: next, selectedIds: s.selectedIds.filter((sid) => sid !== id) };
+      return { objects: next, selectedObjectIds: s.selectedObjectIds.filter((sid) => sid !== id) };
     });
 
     get().pushHistory({
@@ -226,20 +291,20 @@ export const useAppStore = create<AppState>((set, get) => ({
         set((s) => {
           const next = { ...s.objects };
           delete next[id];
-          return { objects: next, selectedIds: s.selectedIds.filter((sid) => sid !== id) };
+          return { objects: next, selectedObjectIds: s.selectedObjectIds.filter((sid) => sid !== id) };
         }),
     });
   },
 
   removeSelectedObjects: () => {
-    const { selectedIds, objects } = get();
-    const removedEntries = selectedIds.map((id) => [id, objects[id]] as const).filter(([, o]) => !!o);
+    const { selectedObjectIds, objects } = get();
+    const removedEntries = selectedObjectIds.map((id) => [id, objects[id]] as const).filter(([, o]) => !!o);
     if (removedEntries.length === 0) return;
 
     set((s) => {
       const next = { ...s.objects };
       removedEntries.forEach(([id]) => delete next[id]);
-      return { objects: next, selectedIds: [] };
+      return { objects: next, selectedObjectIds: [] };
     });
 
     get().pushHistory({
@@ -249,7 +314,88 @@ export const useAppStore = create<AppState>((set, get) => ({
         set((s) => {
           const next = { ...s.objects };
           removedEntries.forEach(([id]) => delete next[id]);
-          return { objects: next, selectedIds: [] };
+          return { objects: next, selectedObjectIds: [] };
+        }),
+    });
+  },
+
+  duplicateSelectedObjects: () => {
+    const { selectedObjectIds, objects } = get();
+    const sources = selectedObjectIds.map((id) => objects[id]).filter((o): o is SceneObject => !!o);
+    if (sources.length === 0) return;
+
+    const clones: SceneObject[] = sources.map((src) => {
+      const type = src.parametric.type;
+      const n = get().nextInstanceNumber(type);
+      const namePrefix = src.name.replace(/\s+\d+$/, '');
+      return {
+        ...src,
+        id: `${type}_${Date.now()}_${Math.floor(Math.random() * 10000)}`,
+        name: `${namePrefix} ${n}`,
+        position: { ...src.position, x: src.position.x + 300, z: src.position.z + 300 },
+        bim: {
+          ...src.bim,
+          objectId: `${src.bim.objectId}-COPY`,
+          globalId: Math.random().toString(36).substring(2, 10),
+        },
+      };
+    });
+
+    set((s) => ({
+      objects: { ...s.objects, ...Object.fromEntries(clones.map((c) => [c.id, c])) },
+      selectedObjectIds: clones.map((c) => c.id),
+    }));
+
+    get().pushHistory({
+      actionName: `Duplicate ${clones.length} Object(s)`,
+      undo: () =>
+        set((s) => {
+          const next = { ...s.objects };
+          clones.forEach((c) => delete next[c.id]);
+          return { objects: next, selectedObjectIds: [] };
+        }),
+      redo: () =>
+        set((s) => ({
+          objects: { ...s.objects, ...Object.fromEntries(clones.map((c) => [c.id, c])) },
+          selectedObjectIds: clones.map((c) => c.id),
+        })),
+    });
+  },
+
+  groupSelectedObjects: () => {
+    const { selectedObjectIds, objects } = get();
+    if (selectedObjectIds.length < 2) return;
+
+    const groupId = `group_${Date.now()}_${Math.floor(Math.random() * 10000)}`;
+    const before = Object.fromEntries(
+      selectedObjectIds.map((id) => [id, objects[id]?.parentId] as const)
+    );
+
+    set((s) => {
+      const next = { ...s.objects };
+      selectedObjectIds.forEach((id) => {
+        if (next[id]) next[id] = { ...next[id], parentId: groupId };
+      });
+      return { objects: next };
+    });
+
+    get().pushHistory({
+      actionName: `Group ${selectedObjectIds.length} Object(s)`,
+      undo: () =>
+        set((s) => {
+          const next = { ...s.objects };
+          Object.entries(before).forEach(([id, parentId]) => {
+            if (next[id]) next[id] = { ...next[id], parentId };
+          });
+          return { objects: next };
+        }),
+      redo: () =>
+        set((s) => {
+          const next = { ...s.objects };
+          selectedObjectIds.forEach((id) => {
+            if (next[id]) next[id] = { ...next[id], parentId: groupId };
+          });
+          return { objects: next };
         }),
     });
   },
@@ -283,4 +429,48 @@ export const useAppStore = create<AppState>((set, get) => ({
     history[historyIndex + 1].redo();
     set({ historyIndex: historyIndex + 1 });
   },
+
+  setActiveLayerId: (id) => set({ activeLayerId: id }),
+
+  addLayer: (name, color) =>
+    set((state) => {
+      const id = `layer_${Date.now()}_${Math.floor(Math.random() * 1000)}`;
+      const newLayer: LayerTag = { id, name, color, visible: true, locked: false };
+      return { layers: [...state.layers, newLayer], activeLayerId: id };
+    }),
+
+  toggleLayerVisibility: (id) =>
+    set((state) => ({
+      layers: state.layers.map((l) => (l.id === id ? { ...l, visible: !l.visible } : l)),
+    })),
+
+  toggleLayerLock: (id) =>
+    set((state) => ({
+      layers: state.layers.map((l) => (l.id === id ? { ...l, locked: !l.locked } : l)),
+    })),
+
+  setActiveMaterialId: (id) => set({ activeMaterialId: id }),
+
+  addMaterial: (material) =>
+    set((state) => ({
+      materials: [...state.materials, material],
+      activeMaterialId: material.id,
+    })),
+
+  saveCurrentScene: (name, cameraPosition, targetPosition) =>
+    set((state) => {
+      const layerVisibilities: Record<string, boolean> = {};
+      state.layers.forEach((l) => {
+        layerVisibilities[l.id] = l.visible;
+      });
+      const scene: SavedScene = {
+        id: `scene_${Date.now()}_${Math.floor(Math.random() * 1000)}`,
+        name,
+        cameraPosition,
+        targetPosition,
+        displayMode: state.displayMode,
+        layerVisibilities,
+      };
+      return { savedScenes: [...state.savedScenes, scene] };
+    }),
 }));

@@ -16,7 +16,7 @@ export const BimQuantitiesPanel: React.FC = () => {
 
   const categoryTotals: Record<string, { count: number; volume: number; cost: number }> = {};
 
-  objects.forEach((obj) => {
+  Object.values(objects).forEach((obj) => {
     if (!obj.visible) return;
     const metrics = calculateObjectMetrics(obj.parametric, obj.scale);
     const cost = obj.bim.costEstimate || 0;
