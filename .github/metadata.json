@@ -1,0 +1,6 @@
+{
+  "name": "EVLab 3D Studio",
+  "description": "Professional 3D modeling and visualization application for Engineering, BIM, Architecture, Civil, and 3D design.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
